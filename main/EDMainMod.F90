@@ -74,6 +74,8 @@ module EDMainMod
   use FatesConstantsMod        , only : itrue,ifalse
   use FatesConstantsMod        , only : primaryforest, secondaryforest
   use FatesConstantsMod        , only : nearzero
+  use FatesConstantsMod        , only : m2_per_ha
+  use FatesConstantsMod        , only : sec_per_day
   use FatesPlantHydraulicsMod  , only : do_growthrecruiteffects
   use FatesPlantHydraulicsMod  , only : UpdateSizeDepPlantHydProps
   use FatesPlantHydraulicsMod  , only : UpdateSizeDepPlantHydStates
@@ -81,7 +83,6 @@ module EDMainMod
   use FatesPlantHydraulicsMod  , only : UpdateSizeDepRhizHydProps
   use FatesPlantHydraulicsMod  , only : AccumulateMortalityWaterStorage
   use FatesAllometryMod        , only : h_allom,tree_sai,tree_lai
-  use FatesPlantHydraulicsMod  , only : UpdateSizeDepRhizHydStates
   use EDLoggingMortalityMod    , only : IsItLoggingTime
   use EDPatchDynamicsMod       , only : get_frac_site_primary
   use FatesGlobals             , only : endrun => fates_endrun
@@ -154,7 +155,7 @@ contains
 
     !-----------------------------------------------------------------------
 
-    if ( hlm_masterproc==itrue ) write(fates_log(),'(A,I4,A,I2.2,A,I2.2)') 'FATES Dynamics: ',&
+    if (debug .and.( hlm_masterproc==itrue)) write(fates_log(),'(A,I4,A,I2.2,A,I2.2)') 'FATES Dynamics: ',&
           hlm_current_year,'-',hlm_current_month,'-',hlm_current_day
 
     ! Consider moving this towards the end, because some of these
@@ -164,6 +165,10 @@ contains
        call currentSite%mass_balance(el)%ZeroMassBalFlux()
        call currentSite%flux_diags(el)%ZeroFluxDiags()
     end do
+
+    ! zero dynamics (upfreq_in = 1) output history variables
+    call fates_hist%zero_site_hvars(currentSite,upfreq_in=1)
+
 
     ! Call a routine that simply identifies if logging should occur
     ! This is limited to a global event until more structured event handling is enabled
@@ -260,15 +265,10 @@ contains
     ! Patch dynamics sub-routines: fusion, new patch creation (spwaning), termination.
     !*********************************************************************************
 
+    ! turn off patch dynamics if SP or ST3 modes in use
     do_patch_dynamics = itrue
     if(hlm_use_ed_st3.eq.itrue .or. &
-       hlm_use_nocomp.eq.itrue .or. &
        hlm_use_sp.eq.itrue)then
-      ! n.b. this is currently set to false to get around a memory leak that occurs
-      ! when we have multiple patches for each PFT.
-      ! when this is fixed, we will need another option for 'one patch per PFT' vs 'multiple patches per PFT'
-      ! hlm_use_sp check provides cover for potential changes in nocomp logic (nocomp required by spmode, but
-      ! not the other way around).
        do_patch_dynamics = ifalse
     end if
 
@@ -287,7 +287,7 @@ contains
        ! density --> node radii and volumes)
        if( (hlm_use_planthydro.eq.itrue) .and. do_growthrecruiteffects) then
           call UpdateSizeDepRhizHydProps(currentSite, bc_in)
-          call UpdateSizeDepRhizHydStates(currentSite, bc_in)
+          !! call UpdateSizeDepRhizHydStates(currentSite, bc_in) ! keeping if re-implemented (RGK 12-2021)
        end if
 
        ! SP has changes in leaf carbon but we don't expect them to be in balance.
@@ -390,6 +390,7 @@ contains
        if( currentPatch%age  <  0._r8 )then
           write(fates_log(),*) 'negative patch age?',currentPatch%age, &
                currentPatch%patchno,currentPatch%area
+          call endrun(msg=errMsg(sourcefile, __LINE__))
        endif
 
        ! add age increment to secondary forest patches as well
@@ -515,29 +516,35 @@ contains
 
              io_si  = currentSite%h_gid
 
-             fates_hist%hvars(ih_nh4uptake_scpf)%r82d(io_si,iscpf) = &
-                  fates_hist%hvars(ih_nh4uptake_scpf)%r82d(io_si,iscpf) + &
-                  currentCohort%daily_nh4_uptake*currentCohort%n
+             fates_hist%hvars(ih_nh4uptake_scpf)%r82d(io_si,iscpf) =           &
+                  fates_hist%hvars(ih_nh4uptake_scpf)%r82d(io_si,iscpf) +      &
+                  currentCohort%daily_nh4_uptake*currentCohort%n /             &
+                  m2_per_ha / sec_per_day
 
-             fates_hist%hvars(ih_no3uptake_scpf)%r82d(io_si,iscpf) = &
-                  fates_hist%hvars(ih_no3uptake_scpf)%r82d(io_si,iscpf) + &
-                  currentCohort%daily_no3_uptake*currentCohort%n
+             fates_hist%hvars(ih_no3uptake_scpf)%r82d(io_si,iscpf) =           &
+                  fates_hist%hvars(ih_no3uptake_scpf)%r82d(io_si,iscpf) +      &
+                  currentCohort%daily_no3_uptake*currentCohort%n /             &
+                  m2_per_ha / sec_per_day
 
-             fates_hist%hvars(ih_puptake_scpf)%r82d(io_si,iscpf) = &
-                  fates_hist%hvars(ih_puptake_scpf)%r82d(io_si,iscpf) + &
-                  currentCohort%daily_p_uptake*currentCohort%n
+             fates_hist%hvars(ih_puptake_scpf)%r82d(io_si,iscpf) =             &
+                  fates_hist%hvars(ih_puptake_scpf)%r82d(io_si,iscpf) +        &
+                  currentCohort%daily_p_uptake*currentCohort%n /               &
+                  m2_per_ha / sec_per_day
 
-             fates_hist%hvars(ih_nh4uptake_si)%r81d(io_si) = &
-                  fates_hist%hvars(ih_nh4uptake_si)%r81d(io_si)  + &
-                  currentCohort%daily_nh4_uptake*currentCohort%n
+             fates_hist%hvars(ih_nh4uptake_si)%r81d(io_si) =                   &
+                  fates_hist%hvars(ih_nh4uptake_si)%r81d(io_si)  +             &
+                  currentCohort%daily_nh4_uptake*currentCohort%n /             &
+                  m2_per_ha / sec_per_day
 
-             fates_hist%hvars(ih_no3uptake_si)%r81d(io_si) = &
-                  fates_hist%hvars(ih_no3uptake_si)%r81d(io_si)  + &
-                  currentCohort%daily_no3_uptake*currentCohort%n
+             fates_hist%hvars(ih_no3uptake_si)%r81d(io_si) =                   &
+                  fates_hist%hvars(ih_no3uptake_si)%r81d(io_si)  +             &
+                  currentCohort%daily_no3_uptake*currentCohort%n /             &
+                  m2_per_ha / sec_per_day
 
-             fates_hist%hvars(ih_puptake_si)%r81d(io_si) = &
-                  fates_hist%hvars(ih_puptake_si)%r81d(io_si)  + &
-                  currentCohort%daily_p_uptake*currentCohort%n
+             fates_hist%hvars(ih_puptake_si)%r81d(io_si) =                     &
+                  fates_hist%hvars(ih_puptake_si)%r81d(io_si)  +               &
+                  currentCohort%daily_p_uptake*currentCohort%n /               &
+                  m2_per_ha / sec_per_day
 
 
              ! Diagnostics on efflux, size and pft [kgX/ha/day]
@@ -608,6 +615,7 @@ contains
              currentCohort%coage = currentCohort%coage + hlm_freq_day
              if(currentCohort%coage < 0.0_r8)then
                 write(fates_log(),*) 'negative cohort age?',currentCohort%coage
+                call endrun(msg=errMsg(sourcefile, __LINE__))
              end if
 
              ! update cohort age class and age x pft class
@@ -719,6 +727,8 @@ contains
 
     call TotalBalanceCheck(currentSite,final_check_id)
 
+    currentSite%area_by_age(:) = 0._r8
+    
     currentPatch => currentSite%oldest_patch
     do while(associated(currentPatch))
 
@@ -730,8 +740,12 @@ contains
         ! This cohort count is used in the photosynthesis loop
         call count_cohorts(currentPatch)
 
-
+        ! Update the total area of by patch age class array 
+        currentSite%area_by_age(currentPatch%age_class) = &
+             currentSite%area_by_age(currentPatch%age_class) + currentPatch%area
+        
         currentPatch => currentPatch%younger
+
     enddo
 
     ! The HLMs need to know about nutrient demand, and/or
@@ -996,7 +1010,3 @@ contains
  end subroutine bypass_dynamics
 
 end module EDMainMod
-
-
-
-

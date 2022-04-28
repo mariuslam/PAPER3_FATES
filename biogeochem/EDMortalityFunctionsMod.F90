@@ -4,6 +4,7 @@ module EDMortalityFunctionsMod
   ! Functions that control mortality.
   ! ============================================================================
 
+<<<<<<< HEAD
    use FatesConstantsMod          , only : r8 => fates_r8
    use FatesGlobals               , only : fates_log
    use EDPftvarcon                , only : EDPftvarcon_inst
@@ -13,10 +14,24 @@ module EDMortalityFunctionsMod
    use FatesConstantsMod          , only : itrue,ifalse
    use FatesAllometryMod          , only : bleaf
    use FatesAllometryMod          , only : storage_fraction_of_target
+=======
+   use FatesConstantsMod     , only : r8 => fates_r8
+   use FatesGlobals          , only : fates_log
+   use FatesGlobals          , only : endrun => fates_endrun
+   use FatesGlobals          , only : fates_log
+   use EDPftvarcon           , only : EDPftvarcon_inst
+   use EDTypesMod            , only : ed_cohort_type
+   use EDTypesMod            , only : ed_site_type
+   use EDTypesMod            , only : ed_patch_type
+   use FatesConstantsMod     , only : itrue,ifalse
+   use FatesAllometryMod     , only : bleaf
+   use FatesAllometryMod     , only : storage_fraction_of_target
+>>>>>>> master
    use FatesInterfaceTypesMod     , only : bc_in_type
    use FatesInterfaceTypesMod     , only : hlm_use_ed_prescribed_phys
    use FatesInterfaceTypesMod     , only : hlm_freq_day
    use FatesInterfaceTypesMod     , only : hlm_use_planthydro
+<<<<<<< HEAD
    use EDLoggingMortalityMod      , only : LoggingMortality_frac
    use EDParamsMod                , only : fates_mortality_disturbance_fraction
    use PRTGenericMod              , only : all_carbon_elements
@@ -29,9 +44,22 @@ module EDMortalityFunctionsMod
    use FatesInterfaceTypesMod     , only : hlm_current_year
    use FatesInterfaceTypesMod     , only : hlm_current_month
    use FatesInterfaceTypesMod     , only : hlm_current_day
+=======
+   use EDLoggingMortalityMod , only : LoggingMortality_frac
+   use EDParamsMod           , only : fates_mortality_disturbance_fraction
+
+   use PRTGenericMod,          only : all_carbon_elements
+   use PRTGenericMod,          only : store_organ
+   use shr_log_mod           , only : errMsg => shr_log_errMsg
+   
+>>>>>>> master
    implicit none
    private
    
+
+   logical, parameter :: debug = .false.
+   character(len=*), parameter, private :: sourcefile = &
+        __FILE__
    
    public :: mortality_rates
    public :: Mortality_Derivative
@@ -67,7 +95,6 @@ contains
     real(r8),intent(out) :: smort  ! size dependent senescence term
     real(r8),intent(out) :: asmort ! age dependent senescence term 
 
-    integer  :: ifp
     real(r8) :: frac  ! relativised stored carbohydrate
     real(r8) :: leaf_c_target      ! target leaf biomass kgC
     real(r8) :: store_c
@@ -197,6 +224,7 @@ if (hlm_use_ed_prescribed_phys .eq. ifalse) then
     else
        write(fates_log(),*) 'dbh problem in mortality_rates', &
             cohort_in%dbh,cohort_in%pft,cohort_in%n,cohort_in%canopy_layer
+       call endrun(msg=errMsg(sourcefile, __LINE__))
     endif
     !-------------------------------------------------------------------------------- 
     !    Mortality due to cold and freezing stress (frmort), based on ED2 and:           
@@ -205,7 +233,16 @@ if (hlm_use_ed_prescribed_phys .eq. ifalse) then
     !           Eastern US carbon sink.  Glob. Change Biol., 12, 2370-2390,              
     !           doi: 10.1111/j.1365-2486.2006.01254.x                                    
 
+<<<<<<< HEAD
     ifp = cohort_in%patchptr%patchno
+=======
+    temp_in_C = cohort_in%patchptr%tveg24%GetMean() - tfrz
+    
+    temp_dep_fraction  = max(0.0_r8, min(1.0_r8, 1.0_r8 - (temp_in_C - &
+                         EDPftvarcon_inst%freezetol(cohort_in%pft))/frost_mort_buffer) )
+    frmort    = EDPftvarcon_inst%mort_scalar_coldstress(cohort_in%pft) * temp_dep_fraction
+
+>>>>>>> master
 
     if (hlm_use_frosthard .eq. itrue) then !marius implementation of frost 
        Tmin=bc_in%t_ref2m_min_si-273.15_r8

@@ -74,7 +74,8 @@ module EDInitMod
   use PRTGenericMod,          only : nitrogen_element
   use PRTGenericMod,          only : phosphorus_element
   use PRTGenericMod,          only : SetState
-
+  use FatesSizeAgeTypeIndicesMod,only : get_age_class_index
+  
   ! CIME GLOBALS
   use shr_log_mod               , only : errMsg => shr_log_errMsg
 
@@ -140,7 +141,9 @@ contains
     endif
 
     allocate(site_in%use_this_pft(1:numpft))
+    allocate(site_in%area_by_age(1:nlevage))
 
+    
     ! SP mode
     allocate(site_in%sp_tlai(1:numpft))
     allocate(site_in%sp_tsai(1:numpft))
@@ -202,9 +205,17 @@ contains
     site_in%water_memory(:)  = nan
     site_in%vegtemp_memory(:) = nan              ! record of last 10 days temperature for senescence model.
 
+    ! Disturbance rates tracking
+    site_in%primary_land_patchfusion_error = 0.0_r8
+    site_in%harvest_carbon_flux = 0.0_r8
+    site_in%potential_disturbance_rates(:) = 0.0_r8
+    site_in%disturbance_rates_secondary_to_secondary(:) = 0.0_r8
+    site_in%disturbance_rates_primary_to_secondary(:) = 0.0_r8
+    site_in%disturbance_rates_primary_to_primary(:) = 0.0_r8
 
     ! FIRE
     site_in%acc_ni           = 0.0_r8     ! daily nesterov index accumulating over time. time unlimited theoretically.
+    site_in%FDI              = 0.0_r8     ! daily fire danger index (0-1)
     site_in%NF               = 0.0_r8     ! daily lightning strikes per km2
     site_in%NF_successful    = 0.0_r8     ! daily successful iginitions per km2
 
@@ -248,6 +259,8 @@ contains
 
     site_in%area_pft(:) = 0._r8
     site_in%use_this_pft(:) = fates_unset_int
+    site_in%area_by_age(:) = 0._r8
+    
   end subroutine zero_site
 
   ! ============================================================================
@@ -340,7 +353,7 @@ contains
 
              do ft =  1,numpft
                 if(sites(s)%area_pft(ft).lt.0.01_r8.and.sites(s)%area_pft(ft).gt.0.0_r8)then
-                   write(fates_log(),*)  'removing small pft patches',s,ft,sites(s)%area_pft(ft)
+                   if(debug) write(fates_log(),*)  'removing small pft patches',s,ft,sites(s)%area_pft(ft)
                    sites(s)%area_pft(ft)=0.0_r8
                    ! remove tiny patches to prevent numerical errors in terminate patches
                 endif
@@ -431,7 +444,8 @@ contains
     integer  :: s
     integer  :: el
     real(r8) :: age !notional age of this patch
-
+    integer  :: ageclass
+    
     ! dummy locals
     real(r8) :: biomass_stock
     real(r8) :: litter_stock
@@ -494,7 +508,7 @@ contains
           start_patch = 1   ! start at the first vegetated patch
           if(hlm_use_nocomp.eq.itrue)then
              num_new_patches = numpft
-             if(hlm_use_sp.eq.itrue)then
+             if( hlm_use_fixed_biogeog .eq.itrue )then
                 start_patch = 0 ! start at the bare ground patch
              endif
              !           allocate(newppft(numpft))
@@ -588,13 +602,13 @@ contains
                    ! remove or add extra area
                    ! if the oldest patch has enough area, use that
                    sites(s)%oldest_patch%area = sites(s)%oldest_patch%area - (tota-area)
-                   write(*,*) 'fixing patch precision - oldest',s, tota-area
+                   if(debug) write(fates_log(),*) 'fixing patch precision - oldest',s, tota-area
                 else ! or otherwise take the area from the youngest patch.
                    sites(s)%youngest_patch%area = sites(s)%oldest_patch%area - (tota-area)
-                   write(*,*) 'fixing patch precision -youngest ',s, tota-area
+                   if(debug) write(fates_log(),*) 'fixing patch precision -youngest ',s, tota-area
                 endif
              else !this is a big error not just a precision error.
-                write(*,*) 'issue with patch area in EDinit',tota-area,tota
+                write(fates_log(),*) 'issue with patch area in EDinit',tota-area,tota
                 call endrun(msg=errMsg(sourcefile, __LINE__))
              endif  ! big error
           end if ! too much patch area
@@ -897,12 +911,13 @@ contains
        endif !use_this_pft
     enddo !numpft
 
-    ! Zero the mass flux pools of the new cohorts
-    !    temp_cohort => patch_in%tallest
-    !    do while(associated(temp_cohort))
-    !       call temp_cohort%prt%ZeroRates()
-    !       temp_cohort => temp_cohort%shorter
-    !    end do
+    ! (Keeping as an example)
+    ! Pass patch level temperature to the new cohorts (this is a nominal 15C right now)
+    !temp_cohort => patch_in%tallest
+    !do while(associated(temp_cohort))
+        !call temp_cohort%tveg_lpa%UpdateRmean(patch_in%tveg_lpa%GetMean())
+        !temp_cohort => temp_cohort%shorter
+    !end do
 
     call fuse_cohorts(site_in, patch_in,bc_in)
     call sort_cohorts(patch_in)

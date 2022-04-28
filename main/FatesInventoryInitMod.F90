@@ -47,23 +47,24 @@ module FatesInventoryInitMod
    use PRTParametersMod , only : prt_params
    use EDPftvarcon      , only : EDPftvarcon_inst
    use FatesInterfaceTypesMod, only : hlm_parteh_mode
-   use EDCohortDynamicsMod,    only : InitPRTObject
-   use PRTGenericMod,          only : prt_carbon_allom_hyp
-   use PRTGenericMod,          only : prt_cnp_flex_allom_hyp
-   use PRTGenericMod,          only : prt_vartypes
-   use PRTGenericMod,          only : leaf_organ
-   use PRTGenericMod,          only : fnrt_organ
-   use PRTGenericMod,          only : sapw_organ
-   use PRTGenericMod,          only : store_organ
-   use PRTGenericMod,          only : struct_organ
-   use PRTGenericMod,          only : repro_organ
-   use PRTGenericMod,          only : carbon12_element
-   use PRTGenericMod,          only : nitrogen_element
-   use PRTGenericMod,          only : phosphorus_element
-   use PRTGenericMod,          only : SetState
-   use FatesConstantsMod,      only : primaryforest
-   use FatesConstantsMod,      only : fates_unset_int
-   use PRTGenericMod,          only : StorageNutrientTarget
+   use EDCohortDynamicsMod, only : InitPRTObject
+   use PRTGenericMod,       only : prt_carbon_allom_hyp
+   use PRTGenericMod,       only : prt_cnp_flex_allom_hyp
+   use PRTGenericMod,       only : prt_vartypes
+   use PRTGenericMod,       only : leaf_organ
+   use PRTGenericMod,       only : fnrt_organ
+   use PRTGenericMod,       only : sapw_organ
+   use PRTGenericMod,       only : store_organ
+   use PRTGenericMod,       only : struct_organ
+   use PRTGenericMod,       only : repro_organ
+   use PRTGenericMod,       only : carbon12_element
+   use PRTGenericMod,       only : nitrogen_element
+   use PRTGenericMod,       only : phosphorus_element
+   use PRTGenericMod,       only : SetState
+   use FatesConstantsMod,   only : primaryforest
+   use FatesRunningMeanMod, only : ema_lpa
+   use PRTGenericMod,       only : StorageNutrientTarget
+   use FatesConstantsMod,   only : fates_unset_int
 
    implicit none
    private
@@ -484,7 +485,7 @@ contains
          write(fates_log(),*) 'Lat: ',sites(s)%lat,' Lon: ',sites(s)%lon
          write(fates_log(),*) basal_area_pref,' [m2/ha]'
          write(fates_log(),*) '-------------------------------------------------------'
-
+                  
          ! Update the patch index numbers and fuse the cohorts in the patches
          ! ----------------------------------------------------------------------------------------
          ipa=1
@@ -733,7 +734,7 @@ contains
       ! water	(NA)       Water content of soil (NOT USED)
       ! fsc	(kg/m2)    Fast Soil Carbon
       ! stsc	(kg/m2)    Structural Soil Carbon
-      ! stsl	(kg/m2)    Structural Soil Lignan
+      ! stsl	(kg/m2)    Structural Soil Lignin
       ! ssc	(kg/m2)    Slow Soil Carbon
       ! psc	(NA)       Passive Soil Carbon (NOT USED)
       ! msn	(kg/m2)    Mineralized Soil Nitrogen
@@ -762,7 +763,7 @@ contains
       real(r8)                                    :: p_water    ! Patch water (unused)
       real(r8)                                    :: p_fsc      ! Patch fast soil carbon
       real(r8)                                    :: p_stsc     ! Patch structural soil carbon
-      real(r8)                                    :: p_stsl     ! Patch structural soil lignans
+      real(r8)                                    :: p_stsl     ! Patch structural soil lignins
       real(r8)                                    :: p_ssc      ! Patch slow soil carbon
       real(r8)                                    :: p_psc      ! Patch P soil carbon
       real(r8)                                    :: p_msn      ! Patch mean soil nitrogen
@@ -994,9 +995,11 @@ contains
       end if
 
       if (c_pft .eq. 0 ) then
-         write(fates_log(), *) 'inventory pft: ',c_pft
-         write(fates_log(), *) 'SPECIAL CASE TRIGGERED: PFT == 0 and therefore this subroutine'
-         write(fates_log(), *) 'will assign a cohort with n = n_orig/numpft to every cohort in range 1 to numpft'
+         if(debug_inv)then
+            write(fates_log(), *) 'inventory pft: ',c_pft
+            write(fates_log(), *) 'SPECIAL CASE TRIGGERED: PFT == 0 and therefore this subroutine'
+            write(fates_log(), *) 'will assign a cohort with n = n_orig/numpft to every cohort in range 1 to numpft'
+         end if
          ncohorts_to_create = numpft
       else
          ncohorts_to_create = 1
@@ -1043,7 +1046,7 @@ contains
          temp_cohort%structmemory = 0._r8
          cstatus = leaves_on
 
-	 stem_drop_fraction = EDPftvarcon_inst%phen_stem_drop_fraction(temp_cohort%pft)
+         stem_drop_fraction = EDPftvarcon_inst%phen_stem_drop_fraction(temp_cohort%pft)
 
          if( prt_params%season_decid(temp_cohort%pft) == itrue .and. &
               any(csite%cstatus == [phen_cstat_nevercold,phen_cstat_iscold])) then
@@ -1070,6 +1073,11 @@ contains
          prt_obj => null()
          call InitPRTObject(prt_obj)
 
+         !  (Keeping as an example)
+         ! Allocate running mean functions
+         !allocate(temp_cohort%tveg_lpa)
+         !call temp_cohort%tveg_lpa%InitRMean(ema_lpa,init_value=cpatch%tveg_lpa%GetMean())
+         
          do el = 1,num_elements
 
             element_id = element_list(el)

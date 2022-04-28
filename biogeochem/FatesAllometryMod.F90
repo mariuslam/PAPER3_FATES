@@ -95,7 +95,8 @@ module FatesAllometryMod
   use shr_log_mod      , only : errMsg => shr_log_errMsg
   use FatesGlobals     , only : fates_log
   use FatesGlobals     , only : endrun => fates_endrun
-  use EDTypesMod       , only : nlevleaf, dinc_ed
+  use FatesGlobals     , only : FatesWarn,N2S,A2S,I2S
+  use EDTypesMod       , only : nlevleaf, dinc_vai
   use EDTypesMod       , only : nclmax
 
 
@@ -130,6 +131,8 @@ module FatesAllometryMod
 
   
   logical, parameter :: debug = .false.
+
+  character(len=1024) :: warn_msg   ! for defining a warning message
   
   ! If testing b4b with older versions, do not remove sapwood
   ! Our old methods with saldarriaga did not remove sapwood from the
@@ -731,7 +734,7 @@ contains
 
     tree_sai   =  prt_params%allom_sai_scaler(pft) * target_lai
 
-    if( (treelai + tree_sai) > (nlevleaf*dinc_ed) )then
+    if( (treelai + tree_sai) > (sum(dinc_vai)) )then
 
        call h_allom(dbh,pft,h)
 
@@ -740,7 +743,8 @@ contains
        write(fates_log(),*) 'sai: ',tree_sai
        write(fates_log(),*) 'target_lai: ',target_lai
        write(fates_log(),*) 'lai+sai: ',treelai+tree_sai
-       write(fates_log(),*) 'nlevleaf,dinc_ed,nlevleaf*dinc_ed :',nlevleaf,dinc_ed,nlevleaf*dinc_ed
+       write(fates_log(),*) 'dinc_vai:',dinc_vai
+       write(fates_log(),*) 'nlevleaf,sum(dinc_vai):',nlevleaf,sum(dinc_vai)
        write(fates_log(),*) 'pft: ',pft
        write(fates_log(),*) 'call id: ',call_id
        write(fates_log(),*) 'n: ',nplant
@@ -1330,16 +1334,15 @@ contains
     
     ! ======================================================================
     ! This is a power function for leaf biomass from plant diameter.
-    !
-    ! log(bl) = a2 + b2*log(h)
-    ! bl = exp(a2) * h**b2
     ! ======================================================================
     
+    ! p1 and p2 represent the parameters that govern total beaf dry biomass, 
+    ! and the output argument blmax is the leaf carbon only
     
     real(r8),intent(in)  :: d         ! plant diameter [cm]
     real(r8),intent(in)  :: p1        ! parameter 1  (slope)
     real(r8),intent(in)  :: p2        ! parameter 2  (curvature, exponent)
-    real(r8),intent(in)  :: c2b       ! carbon to biomass multiplier
+    real(r8),intent(in)  :: c2b       ! carbon to biomass multiplier (~2)
     
     real(r8),intent(out) :: blmax     ! plant leaf biomass [kgC]
     real(r8),intent(out),optional :: dblmaxdd  ! change leaf bio per diameter [kgC/cm]
@@ -1674,7 +1677,7 @@ contains
     real(r8),intent(in)  :: p2  ! allometry parameter 2
     real(r8),intent(in)  :: wood_density
     real(r8),intent(in)  :: c2b
-    real(r8),intent(out) :: bagw     ! plant height [m]
+    real(r8),intent(out) :: bagw     ! plant aboveground biomass [kgC]
     real(r8),intent(out),optional :: dbagwdd  ! change in agb per diameter [kgC/cm]
     
     real(r8) :: dbagwdd1,dbagwdd2,dbagwdd3
@@ -1730,10 +1733,10 @@ contains
 
     
     real(r8),intent(in)  :: d       ! plant diameter [cm]
-    real(r8),intent(in)  :: p1  ! allometry parameter 1
-    real(r8),intent(in)  :: p2  ! allometry parameter 2
+    real(r8),intent(in)  :: p1      ! allometry parameter 1
+    real(r8),intent(in)  :: p2      ! allometry parameter 2
     real(r8),intent(in)  :: c2b     ! carbon to biomass multiplier ~2
-    real(r8),intent(out) :: bagw     ! plant height [m]
+    real(r8),intent(out) :: bagw    ! plant aboveground biomass [kg C]
     real(r8),intent(out),optional :: dbagwdd  ! change in agb per diameter [kgC/cm]
     
     bagw    = (p1 * d**p2)/c2b
@@ -2454,9 +2457,17 @@ contains
      end if
 
      call h_allom(d,ipft,h)
-     if(counter>10)then
+
+     if(counter>20)then
         write(fates_log(),*) 'dbh counter: ',counter,' is woody: ',&
              int(prt_params%woody(ipft))==itrue
+
+        if(int(prt_params%woody(ipft))==itrue)then
+           warn_msg = 'dbh counter: '//trim(I2S(counter))//' is woody'
+        else
+           warn_msg = 'dbh counter: '//trim(I2S(counter))//' is not woody'
+        end if
+        call FatesWarn(warn_msg,index=3)
      end if
 
      

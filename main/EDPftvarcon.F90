@@ -59,7 +59,7 @@ module EDPftvarcon
 
      real(r8), allocatable :: lf_flab(:)             ! Leaf litter labile fraction [-]
      real(r8), allocatable :: lf_fcel(:)             ! Leaf litter cellulose fraction [-]
-     real(r8), allocatable :: lf_flig(:)             ! Leaf litter lignan fraction [-]
+     real(r8), allocatable :: lf_flig(:)             ! Leaf litter lignin fraction [-]
      real(r8), allocatable :: fr_flab(:)             ! Fine-root litter labile fraction [-]
      real(r8), allocatable :: fr_fcel(:)             ! Fine-root litter cellulose fraction [-]
      real(r8), allocatable :: fr_flig(:)             ! Fine-root litter lignatn fraction [-]
@@ -197,12 +197,12 @@ module EDPftvarcon
      real(r8), allocatable :: hydr_rfrac_stem(:)    ! fraction of total tree resistance from troot to canopy
      real(r8), allocatable :: hydr_avuln_gs(:)      ! shape parameter for stomatal control of water vapor exiting leaf
      real(r8), allocatable :: hydr_p50_gs(:)        ! water potential at 50% loss of stomatal conductance
-     real(r8), allocatable :: hydr_k_lwp(:)      ! inner leaf humidity scaling coefficient
+     real(r8), allocatable :: hydr_k_lwp(:)         ! inner leaf humidity scaling coefficient 
 
      ! PFT x Organ Dimension  (organs are: 1=leaf, 2=stem, 3=transporting root, 4=absorbing root)
      ! ----------------------------------------------------------------------------------
 
-     ! Van Genuchten PV PK curves  (NOT IMPLEMENTED)
+     ! Van Genuchten PV PK curves
      real(r8), allocatable :: hydr_vg_alpha_node(:,:)   ! capilary length parameter in van Genuchten model
      real(r8), allocatable :: hydr_vg_m_node(:,:)       ! pore size distribution, m in van Genuchten 1980 model, range (0,1)
      real(r8), allocatable :: hydr_vg_n_node(:,:)       ! pore size distribution, n in van Genuchten 1980 model, range >2
@@ -786,6 +786,10 @@ contains
     name = 'fates_hydr_rfrac_stem'
     call fates_params%RetreiveParameterAllocate(name=name, &
           data=this%hydr_rfrac_stem)
+
+    name = 'fates_hydr_k_lwp'
+    call fates_params%RetreiveParameterAllocate(name=name, &
+          data=this%hydr_k_lwp)
 
     name = 'fates_hydr_avuln_gs'
     call fates_params%RetreiveParameterAllocate(name=name, &
@@ -1431,12 +1435,13 @@ contains
         write(fates_log(),fmt0) 'phen_cold_size_threshold = ',EDPftvarcon_inst%phen_cold_size_threshold
         write(fates_log(),fmt0) 'phen_stem_drop_fraction',EDpftvarcon_inst%phen_stem_drop_fraction
         write(fates_log(),fmt0) 'fire_alpha_SH = ',EDPftvarcon_inst%fire_alpha_SH
-	write(fates_log(),fmt0) 'allom_frbstor_repro = ',EDPftvarcon_inst%allom_frbstor_repro
+        write(fates_log(),fmt0) 'allom_frbstor_repro = ',EDPftvarcon_inst%allom_frbstor_repro
         write(fates_log(),fmt0) 'hydr_p_taper = ',EDPftvarcon_inst%hydr_p_taper
         write(fates_log(),fmt0) 'hydr_rs2 = ',EDPftvarcon_inst%hydr_rs2
         write(fates_log(),fmt0) 'hydr_srl = ',EDPftvarcon_inst%hydr_srl
         write(fates_log(),fmt0) 'hydr_rfrac_stem = ',EDPftvarcon_inst%hydr_rfrac_stem
         write(fates_log(),fmt0) 'hydr_avuln_gs = ',EDPftvarcon_inst%hydr_avuln_gs
+        write(fates_log(),fmt0) 'hydr_k_lwp = ',EDPftvarcon_inst%hydr_k_lwp
         write(fates_log(),fmt0) 'hydr_p50_gs = ',EDPftvarcon_inst%hydr_p50_gs
         write(fates_log(),fmt0) 'hydr_k_lwp = ',EDPftvarcon_inst%hydr_k_lwp
         write(fates_log(),fmt0) 'hydr_avuln_node = ',EDPftvarcon_inst%hydr_avuln_node
@@ -1475,7 +1480,7 @@ contains
     use FatesConstantsMod  , only : fates_check_param_set
     use FatesConstantsMod  , only : itrue, ifalse
     use EDParamsMod        , only : logging_mechanical_frac, logging_collateral_frac, logging_direct_frac
-    use FatesInterfaceTypesMod         , only : hlm_use_fixed_biogeog
+    use FatesInterfaceTypesMod         , only : hlm_use_fixed_biogeog,hlm_use_sp
 
      ! Argument
      logical, intent(in) :: is_master    ! Only log if this is the master proc
@@ -1737,6 +1742,7 @@ contains
            call endrun(msg=errMsg(sourcefile, __LINE__))
 
         end if
+<<<<<<< HEAD
         if (hlm_use_fixed_biogeog.eq.itrue) then
            ! check that the host-fates PFT map adds to one along HLM dimension so that all the HLM area
            ! goes to a FATES PFT.  Each FATES PFT can get < or > 1 of an HLM PFT.
@@ -1754,6 +1760,27 @@ contains
         end if
      end do !ipft
        
+=======
+
+        if( hlm_use_fixed_biogeog .eq. itrue ) then
+           ! check that the host-fates PFT map adds to one along HLM dimension so that all the HLM area
+           ! goes to a FATES PFT.  Each FATES PFT can get < or > 1 of an HLM PFT.
+           do hlm_pft = 1,size( EDPftvarcon_inst%hlm_pft_map,2)
+              sumarea = sum(EDPftvarcon_inst%hlm_pft_map(1:npft,hlm_pft))
+              if(abs(sumarea-1.0_r8).gt.nearzero)then
+                 write(fates_log(),*) 'The distribution of this host land model PFT :',hlm_pft
+                 write(fates_log(),*) 'into FATES PFTs, does not add up to 1.0.'
+                 write(fates_log(),*) 'Error is:',sumarea-1.0_r8
+                 write(fates_log(),*) 'and the hlm_pft_map is:', EDPftvarcon_inst%hlm_pft_map(1:npft,hlm_pft)
+                 write(fates_log(),*) 'Aborting'
+                 call endrun(msg=errMsg(sourcefile, __LINE__))
+              end if
+           end do !hlm_pft
+        end if
+        
+     end do !ipft
+
+>>>>>>> master
 
 !!    ! Checks for HYDRO
 !!    if( hlm_use_planthydro == itrue ) then
