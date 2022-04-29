@@ -2466,10 +2466,8 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
   real(r8) :: sumcheck            ! used to debug mass balance in soil horizon diagnostics
   integer  :: nlevrhiz            ! local for number of rhizosphere levels
   integer  :: sc                  ! size class index
-<<<<<<< HEAD
   real(r8) :: pinot_hard          ! marius
   real(r8) :: epsil_hard          ! marius
-=======
   real(r8) :: lat,lon             ! latitude and longitude of site
   real(r8) :: eff_por             ! effective porosity
   real(r8) :: h2osoi_liqvol       ! liquid water content [m3/m3]
@@ -2485,7 +2483,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
   integer, parameter :: soilk_disagg = 1   ! disaggregate rhizosphere layers based on conductance
 
   integer, parameter :: rootflux_disagg = soilk_disagg
->>>>>>> master
+
 
   
   ! ----------------------------------------------------------------------------------
@@ -2654,14 +2652,14 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
                  call MatSolve2D(csite_hydr,ccohort,ccohort_hydr, &
                       dtime,qflx_tran_veg_indiv, &
                       sapflow,rootuptake(1:nlevrhiz),wb_err_plant,dwat_plant, &
-                      dth_layershell_col)
+                      dth_layershell_col,sites(s)%hard_level2(ft)) !marius
                  
               elseif(hydr_solver_type == hydr_solver_2DPicard) then
 
                  call PicardSolve2D(csite_hydr,ccohort,ccohort_hydr, &
                       dtime,qflx_tran_veg_indiv, &
                       sapflow,rootuptake(1:nlevrhiz),wb_err_plant,dwat_plant, &
-                      dth_layershell_col,csite_hydr%num_nodes)
+                      dth_layershell_col,csite_hydr%num_nodes,sites(s)%hard_level2(ft))
                  
               elseif(hydr_solver_type == hydr_solver_1DTaylor ) then
 
@@ -2863,11 +2861,6 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
         end if
         
      enddo
-<<<<<<< HEAD
-
-     ! Note that the cohort-level solvers are expected to update
-     ! site_hydr%h2oveg
-=======
      
      ! Removed supersaturation purge because
      ! calculation is messier now that roots are on
@@ -2879,7 +2872,6 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
      ! Note that the cohort-level solvers are expected to update
      ! csite_hydr%h2oveg
 
->>>>>>> master
      ! Calculate site total kg's of runoff
      site_runoff = sum(bc_out(s)%qflx_ro_sisl(:))*dtime
 
@@ -4767,7 +4759,7 @@ end subroutine Hydraulics_Tridiagonal
 subroutine MatSolve2D(csite_hydr,cohort,cohort_hydr, &
                       tmx,qtop, &
                       sapflow,rootuptake,wb_err_plant , dwat_plant, &
-                      dth_layershell_site)
+                      dth_layershell_site,hard_level) !marius
 
 
   ! ---------------------------------------------------------------------------------
@@ -4809,7 +4801,7 @@ subroutine MatSolve2D(csite_hydr,cohort,cohort_hydr, &
    real(r8),intent(in)                          :: qtop
    real(r8),intent(out) :: sapflow                   ! time integrated mass flux between transp-root and stem [kg]
    real(r8),intent(out) :: rootuptake(:)             ! time integrated mass flux between rhizosphere and aroot [kg]
-
+   real(r8),intent(in)  :: hard_level  !marius
 
    real(r8),intent(out)                         :: wb_err_plant ! total error over plant, transpiration
    ! should match change in storage [kg/m2]
@@ -5142,12 +5134,8 @@ subroutine MatSolve2D(csite_hydr,cohort,cohort_hydr, &
          ! of each connection.  This IS dependant on total potential h_node
          ! because of the root-soil radial conductance.
 
-<<<<<<< HEAD
-         call SetMaxCondConnections(site_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, cohort%hard_level, bc_in)
-=======
-         call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up)
+         call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, hard_level) !marius
 
->>>>>>> master
          ! calculate boundary fluxes
          do icnx=1,csite_hydr%num_connections
 
@@ -5541,14 +5529,10 @@ function SumBetweenDepths(csite_hydr,depth_t,depth_b,array_in) result(depth_sum)
 end function SumBetweenDepths
 
 ! =====================================================================================
-
-<<<<<<< HEAD
-subroutine SetMaxCondConnections(site_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, hard_level,bc_in) !marius
-=======
 subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
                          tmx,qtop, &
                          sapflow,rootuptake,wb_err_plant , dwat_plant, & 
-                         dth_layershell_site,nnode)
+                         dth_layershell_site,nnode,hard_level) !marius
 
 
   ! ---------------------------------------------------------------------------------
@@ -5590,7 +5574,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
   integer                                      :: nnode !total number of nodes
   real(r8),intent(out) :: sapflow                   ! time integrated mass flux between transp-root and stem [kg]
   real(r8),intent(out) :: rootuptake(:)             ! time integrated mass flux between rhizosphere and aroot [kg]
-
+  real(r8),intent(in)  :: hard_level  !marius
 
   real(r8),intent(out)                         :: wb_err_plant ! total error over plant, transpiration 
                                                                ! should match change in storage [kg/m2]
@@ -5870,7 +5854,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
     ! of each connection.  This IS dependant on total potential h_node
     ! because of the root-soil radial conductance.
 
-    call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up)
+    call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, hard_level) !marius
 
     ! calculate boundary fluxes     
     do icnx=1,csite_hydr%num_connections
@@ -5978,7 +5962,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
           ! of each connection.  This IS dependant on total potential h_node
           ! because of the root-soil radial conductance.
 
-          call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up)
+          call SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, hard_level)
 
           ! calculate boundary fluxes     
           do icnx=1,csite_hydr%num_connections
@@ -6201,9 +6185,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
 end subroutine PicardSolve2D
 
 ! =====================================================================================
-
-subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up)
->>>>>>> master
+subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_up, hard_level) !marius
 
   ! -------------------------------------------------------------------------------
   ! This subroutine sets the maximum conductances
@@ -6214,20 +6196,14 @@ subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_
   ! dependent on the updating potential in the system, and not just a function
   ! of plant geometry and material properties.
   ! -------------------------------------------------------------------------------
-<<<<<<< HEAD
-   type(bc_in_type),intent(in) :: bc_in ! marius
-   type(ed_site_hydr_type), intent(in),target   :: site_hydr
-=======
-
    type(ed_site_hydr_type), intent(in),target   :: csite_hydr
->>>>>>> master
    type(ed_cohort_hydr_type), intent(in),target :: cohort_hydr
    real(r8),intent(in)  :: h_node(:)        ! Total (matric+height) potential at each node (Mpa)
    real(r8),intent(out) :: kmax_dn(:)       ! Max conductance of downstream sides of connections (kg s-1 MPa-1)
    real(r8),intent(out) :: kmax_up(:)       ! Max conductance of upstream sides of connections   (kg s-1 MPa-1)
+   real(r8),intent(in)  :: hard_level  !marius
 
    real(r8):: aroot_frac_plant ! Fraction of the cohort's fine-roots
-   real(r8):: hard_level ! marius
    real(r8):: k_factor
    real(r8):: hard_rate_temporary
    real(r8):: soil_rate_temporary
@@ -6241,7 +6217,7 @@ subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_
 
    kmax_dn(:) = fates_unset_r8
    kmax_up(:) = fates_unset_r8
-   k_factor=9._r8 !marius
+   k_factor=3._r8 !marius
    ! Set leaf to stem connections (only 1 leaf layer
    ! this will break if we have multiple, as there would
    ! need to be assumptions about which compartment
@@ -6317,8 +6293,7 @@ subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_
             kmax_dn(icnx) = 1._r8/(1._r8/cohort_hydr%kmax_aroot_lower(j) + &
                   1._r8/cohort_hydr%kmax_aroot_radial_out(j))
          end if
-<<<<<<< HEAD
-         kmax_up(icnx) = site_hydr%kmax_upper_shell(j,1)*aroot_frac_plant
+         kmax_up(icnx) = csite_hydr%kmax_upper_shell(j,1)*aroot_frac_plant
          !-----------------------------------------------!marius
          if (hlm_use_hydrohard .eq. itrue) then
            if (hard_level<-3_r8) then
@@ -6333,10 +6308,6 @@ subroutine SetMaxCondConnections(csite_hydr, cohort_hydr, h_node, kmax_dn, kmax_
               !end if
          endif
          !---------------------------------------------------
-=======
-         kmax_up(icnx) = csite_hydr%kmax_upper_shell(j,1)*aroot_frac_plant
-
->>>>>>> master
       else                 ! soil - soil
          kmax_dn(icnx) = csite_hydr%kmax_lower_shell(j,k-2)*aroot_frac_plant
          kmax_up(icnx) = csite_hydr%kmax_upper_shell(j,k-1)*aroot_frac_plant

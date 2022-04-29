@@ -725,17 +725,12 @@ contains
                  nc%prt => null()
                  call InitPRTObject(nc%prt)
                  call InitPRTBoundaryConditions(nc)
-<<<<<<< HEAD
-                 
-                 !write(fates_log(),*) 'Check4: Call zero_cohort when merging patches' !marius
-=======
 
                  !  (Keeping as an example)
                  ! Allocate running mean functions
                  !allocate(nc%tveg_lpa)
                  !call nc%tveg_lpa%InitRMean(ema_lpa,init_value=new_patch%tveg_lpa%GetMean())
 
->>>>>>> master
                  call zero_cohort(nc)
 
                  ! nc is the new cohort that goes in the disturbed patch (new_patch)... currentCohort

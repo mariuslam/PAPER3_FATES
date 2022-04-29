@@ -253,21 +253,13 @@ contains
     
     ! Input boundaries
     
-<<<<<<< HEAD
-    fates%bc_in(s)%t_veg24_pa(:)  = 0.0_r8
-    fates%bc_in(s)%t_ref2m_24_si  = 0.0_r8 !marius
+    fates%bc_in(s)%temp24_si  = 0.0_r8 !marius
     fates%bc_in(s)%t_mean_5yr_si  = 0.0_r8 !marius
     fates%bc_in(s)%t_min_yr_inst_si  = 0.0_r8 !marius
-    fates%bc_in(s)%t_ref2m_min_si = 0.0_r8 !marius
-    fates%bc_in(s)%t_ref2m_max_si = 0.0_r8 !marius
+    fates%bc_in(s)%tmin24_si = 0.0_r8 !marius
     fates%bc_in(s)%dayl_si        = 0.0_r8 !marius
     fates%bc_in(s)%prev_dayl_si   = 0.0_r8 !marius
-    fates%bc_in(s)%precip24_pa(:) = 0.0_r8
-    fates%bc_in(s)%relhumid24_pa(:) = 0.0_r8
-    fates%bc_in(s)%wind24_pa(:)     = 0.0_r8
 
-=======
->>>>>>> master
     fates%bc_in(s)%lightning24(:)      = 0.0_r8
     fates%bc_in(s)%pop_density(:)      = 0.0_r8
     fates%bc_in(s)%precip24_pa(:)      = 0.0_r8

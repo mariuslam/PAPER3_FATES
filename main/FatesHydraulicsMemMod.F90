@@ -10,12 +10,8 @@ module FatesHydraulicsMemMod
    implicit none
    private
 
-<<<<<<< HEAD
-   logical, parameter, public :: use_2d_hydrosolve = .true. !marius
-=======
-
    ! Define the various different solver options for hydraulics
->>>>>>> master
+
    
    integer, parameter, public :: hydr_solver_1DTaylor = 1
    integer, parameter, public :: hydr_solver_2DNewton = 2

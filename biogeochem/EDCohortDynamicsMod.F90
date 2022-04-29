@@ -646,8 +646,7 @@ contains
 
     currentCohort => cc_p
     currentCohort%hard_level         = -2._r8 !marius
-    currentCohort%hard_rate          = 1._r8 !marius
-    currentCohort%hard_GRF           = 0._r8
+    currentCohort%hard_level_prev    = -2._r8 !marius
     currentCohort%NV                 = 0    
     currentCohort%status_coh         = 0    
     currentCohort%rdark              = 0._r8
@@ -1422,8 +1421,7 @@ contains
                                    if ( .not.currentCohort%isnew) then
                                       !write(fates_log(),*) 'check5 Fusing Two Cohorts: ',currentCohort%n,currentCohort%hard_level,nextc%n,nextc%hard_level
 				      currentCohort%hard_level = (currentCohort%n*currentCohort%hard_level + nextc%n*nextc%hard_level)/newn !marius
-                                      currentCohort%hard_rate = (currentCohort%n*currentCohort%hard_rate + nextc%n*nextc%hard_rate)/newn !marius
-				      currentCohort%hard_GRF   = (currentCohort%n*currentCohort%hard_GRF + nextc%n*nextc%hard_GRF)/newn     !marius
+				      currentCohort%hard_level_prev = (currentCohort%n*currentCohort%hard_level_prev + nextc%n*nextc%hard_level_prev)/newn !marius
 				      !write(fates_log(),*) 'check5 Fusing Two Cohorts: ',currentCohort%hard_level
                                       currentCohort%seed_prod      = (currentCohort%n*currentCohort%seed_prod + &
                                            nextc%n*nextc%seed_prod)/newn
@@ -1926,8 +1924,7 @@ contains
     n%frmort = o%frmort
 
     n%hard_level = o%hard_level !marius
-    n%hard_rate = o%hard_rate !marius
-    n%hard_GRF = o%hard_GRF 
+    n%hard_level_prev = o%hard_level_prev !marius
 
     ! logging mortalities, Yi Xu
     n%lmort_direct     =o%lmort_direct

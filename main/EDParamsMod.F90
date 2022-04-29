@@ -101,7 +101,7 @@ module EDParamsMod
    ! 3 = Picard solution that solves all fluxes in a plant and
    !     the soil simultaneously, 2D: soil x (root + shell)
 
-   integer, parameter, public :: hydr_solver_type = 1    ! 1 = hydr_solver_1DTaylor
+   integer, parameter, public :: hydr_solver_type = 3    ! 1 = hydr_solver_1DTaylor marius Picard
    
    character(len=param_string_length),parameter,public :: ED_name_photo_temp_acclim_timescale = "fates_photo_temp_acclim_timescale"
    character(len=param_string_length),parameter,public :: name_photo_tempsens_model = "fates_photo_tempsens_model"
