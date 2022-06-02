@@ -2033,6 +2033,11 @@ contains
                 rio_asmort_co(io_idx_co)       = ccohort%asmort
                 rio_frmort_co(io_idx_co)       = ccohort%frmort
 
+                if (hlm_use_hydrohard .eq. itrue .or. hlm_use_frosthard .eq. itrue) then
+                   rio_hard_level_co(io_idx_co)      = ccohort%hard_level !marius
+                   rio_hard_level_prev_co(io_idx_co) = ccohort%hard_level_prev
+                end if
+
                 ! Nutrient uptake/efflux
                 rio_daily_no3_uptake_co(io_idx_co) = ccohort%daily_no3_uptake
                 rio_daily_nh4_uptake_co(io_idx_co) = ccohort%daily_nh4_uptake
@@ -2877,6 +2882,7 @@ contains
                                                  ir_hydro_th_ag_covec,io_idx_co)
                    call this%GetCohortRealVector(ccohort%co_hydr%th_aroot,sites(s)%si_hydr%nlevrhiz, &
                                                  ir_hydro_th_aroot_covec,io_idx_co)
+                   !write(fates_log(),*) 'L2857','th_aroot',ccohort%co_hydr%th_aroot,'nlevrhiz',sites(s)%si_hydr%nlevrhiz !marius
 
                    ccohort%co_hydr%th_troot = this%rvars(ir_hydro_th_troot)%r81d(io_idx_co)
                    ccohort%co_hydr%errh2o = this%rvars(ir_hydro_errh2o)%r81d(io_idx_co)

@@ -186,7 +186,7 @@ module FatesPlantHydraulicsMod
   ! is left between soil moisture and saturation [m3/m3]
   ! (if we are going to help purge super-saturation)
 
-  logical,parameter :: debug = .false.          ! flag to report warning in hydro
+  logical,parameter :: debug = .true.          ! flag to report warning in hydro
 
 
   character(len=*), parameter, private :: sourcefile = &
@@ -585,6 +585,8 @@ contains
              !                mpa_per_pa*denh2o*grav_earth*(-csite_hydr%zi_rhiz(j))
 
              cohort_hydr%th_aroot(j) = max(wrfa%p%th_from_psi(cohort_hydr%psi_aroot(j)),wrfa%p%get_thmin())
+             !write(fates_log(),*) 'L586 after','th_aroot(j)',cohort_hydr%th_aroot(j),'psi_aroot(j)',cohort_hydr%psi_aroot(j),'wrfa_th_from_psi',wrfa%p%th_from_psi(cohort_hydr%psi_aroot(j)), &
+             !                      'wrfa_thmin',wrfa%p%get_thmin(),'j',j ! marius
              cohort_hydr%ftc_aroot(j) = wkfa%p%ftc_from_psi(cohort_hydr%psi_aroot(j))
           else
              cohort_hydr%psi_aroot(j) = psi_aroot_init  
@@ -603,7 +605,8 @@ contains
           !                         mpa_per_pa*denh2o*grav_earth*(-csite_hydr%zi_rhiz(j))
           cohort_hydr%th_aroot(j) = max(wrfa%p%th_from_psi(cohort_hydr%psi_aroot(j)), &
                                         wrfa%p%get_thmin())
-
+          !write(fates_log(),*) 'L603 after','th_aroot(j)',cohort_hydr%th_aroot(j),'psi_aroot(j)',cohort_hydr%psi_aroot(j),'wrfa_th_from_psi',wrfa%p%th_from_psi(cohort_hydr%psi_aroot(j)), &
+          !                         'wrfa_thmin',wrfa%p%get_thmin(),'j',j ! marius
           cohort_hydr%ftc_aroot(j) = wkfa%p%ftc_from_psi(cohort_hydr%psi_aroot(j))
        end do
     end if
@@ -669,7 +672,7 @@ contains
        write(fates_log(),*) 'psi troot: ',cohort_hydr%psi_troot
        write(fates_log(),*) 'psi ag(:): ',cohort_hydr%psi_ag(:)
        write(fates_log(),*) 'psi_aroot(:): ',cohort_hydr%psi_aroot(:)
-       call endrun(msg=errMsg(sourcefile, __LINE__))
+       !call endrun(msg=errMsg(sourcefile, __LINE__))
     end if
 
 
@@ -985,6 +988,7 @@ contains
     call bleaf(ccohort%dbh,ccohort%pft,max(ccohort%canopy_trim,min_trim),leaf_c_target)
 
     if( (ccohort%status_coh == leaves_on) .or. ccohort_hydr%is_newly_recruited ) then
+       !write(fates_log(),*)  'leaf_c',leaf_c,'min_leaf_frac',min_leaf_frac,'leaf_c_target',leaf_c_target marius
        ccohort_hydr%v_ag(1:n_hypool_leaf) = max(leaf_c,min_leaf_frac*leaf_c_target) * &
             prt_params%c2b(ft) / denleaf/ real(n_hypool_leaf,r8)
     end if
@@ -1147,7 +1151,8 @@ contains
           th_uncorr = ccohort_hydr%th_aroot(j) * &
                ccohort_hydr%v_aroot_layer_init(j)/ccohort_hydr%v_aroot_layer(j)
           ccohort_hydr%th_aroot(j) = constrain_water_contents(th_uncorr, small_theta_num, ft, aroot_p_media)
-          
+          !write(fates_log(),*) 'L1146 after','th_aroot(j)',ccohort_hydr%th_aroot(j),'j',j,'th_uncorr',th_uncorr,'theta_num',small_theta_num,'ft',ft,'p_media',aroot_p_media ! marius
+
           csite_hydr%h2oveg_growturn_err = csite_hydr%h2oveg_growturn_err + &
                denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_aroot(j)-th_uncorr)*ccohort_hydr%v_aroot_layer(j)
 
@@ -1299,11 +1304,13 @@ subroutine FuseCohortHydraulics(currentSite,currentCohort, nextCohort, bc_in, ne
 
 
    ! Conserve the total water volume
-
+   
    do k=1,n_hypool_ag
       vol_c1 = currentCohort%n*ccohort_hydr%th_ag(k)*ccohort_hydr%v_ag_init(k)
       vol_c2 = nextCohort%n*ncohort_hydr%th_ag(k)*ncohort_hydr%v_ag(k)
-      ccohort_hydr%th_ag(k) = (vol_c1+vol_c2)/(ccohort_hydr%v_ag(k)*newn)
+      if( (currentCohort%status_coh == leaves_on) .or. (k > n_hypool_leaf) ) then
+         ccohort_hydr%th_ag(k) = (vol_c1+vol_c2)/(ccohort_hydr%v_ag(k)*newn)
+      end if
    end do
 
    vol_c1 = currentCohort%n*ccohort_hydr%th_troot*ccohort_hydr%v_troot_init
@@ -1311,9 +1318,16 @@ subroutine FuseCohortHydraulics(currentSite,currentCohort, nextCohort, bc_in, ne
    ccohort_hydr%th_troot = (vol_c1+vol_c2)/(ccohort_hydr%v_troot*newn)
 
    do j=1,csite_hydr%nlevrhiz
+      !write(fates_log(),*) 'L1311 before :currentCohort%n',currentCohort%n,'ccohort_hydr%th_aroot(j)',ccohort_hydr%th_aroot(j), &
+      !      'ccohort_hydr%v_aroot_layer_init(j)',ccohort_hydr%v_aroot_layer_init(j),'nextCohort%n',nextCohort%n,'ncohort_hydr%th_aroot(j)', &
+      !      ncohort_hydr%th_aroot(j),'ncohort_hydr%v_aroot_layer(j)',ncohort_hydr%v_aroot_layer(j),'j',j !marius
       vol_c1 = currentCohort%n*ccohort_hydr%th_aroot(j)*ccohort_hydr%v_aroot_layer_init(j)
       vol_c2 = nextCohort%n*ncohort_hydr%th_aroot(j)*ncohort_hydr%v_aroot_layer(j)
+      !write(fates_log(),*) 'L1313 before','vol1',vol_c1,'vol2',vol_c2,'v_aroot_layer',ccohort_hydr%v_aroot_layer(j), &
+      !                     'newn',newn,'nlevrhiz_j',j,'pft',currentCohort%pft,"th_aroot(j)",ccohort_hydr%th_aroot(j) !marius
       ccohort_hydr%th_aroot(j) = (vol_c1+vol_c2)/(ccohort_hydr%v_aroot_layer(j)*newn)
+      !write(fates_log(),*) 'L1313 after','vol1',vol_c1,'vol2',vol_c2,'v_aroot_layer',ccohort_hydr%v_aroot_layer(j),&
+      !                     'newn',newn,'nlevrhiz_j',j,'pft',currentCohort%pft,"th_aroot(j)",ccohort_hydr%th_aroot(j) !marius
    end do
 
    ccohort_hydr%supsub_flag = 0
@@ -1779,7 +1793,7 @@ end subroutine HydrSiteColdStart
   !for debug only
   nstep = get_nstep()
 
-    bc_out%plant_stored_h2o_si = 0.0_r8
+  bc_out%plant_stored_h2o_si = 0.0_r8
 
   if( hlm_use_planthydro.eq.ifalse ) return
 
@@ -1792,11 +1806,15 @@ end subroutine HydrSiteColdStart
            ccohort_hydr => currentCohort%co_hydr
            !only account for the water for not newly recruit for mass balance
            if(.not.ccohort_hydr%is_newly_recruited) then
+              !write(fates_log(),*) 'L1792','h2oveg',csite_hydr%h2oveg,'th_ag',ccohort_hydr%th_ag(:),'v_ag',ccohort_hydr%v_ag(:), &
+              !'th_troot',ccohort_hydr%th_troot,'v_troot',ccohort_hydr%v_troot,'pft',currentCohort%pft,'v_aroot_layer', &
+              !ccohort_hydr%v_aroot_layer(:),'cohort%n',currentCohort%n,'th_aroot',ccohort_hydr%th_aroot(:) ! marius
               csite_hydr%h2oveg = csite_hydr%h2oveg + &
                    (sum(ccohort_hydr%th_ag(:)*ccohort_hydr%v_ag(:)) + &
                    ccohort_hydr%th_troot*ccohort_hydr%v_troot + &
                    sum(ccohort_hydr%th_aroot(:)*ccohort_hydr%v_aroot_layer(:)))* &
                    denh2o*currentCohort%n
+              !write(fates_log(),*) 'L1792-after','h2oveg',csite_hydr%h2oveg !marius
            endif
 
            currentCohort => currentCohort%shorter
@@ -2887,7 +2905,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
         write(fates_log(),*) 'transpiration flux: ',transp_flux,' [kg/m2]'
         write(fates_log(),*) 'end storage: ',csite_hydr%h2oveg
         write(fates_log(),*) 'pre_h2oveg', prev_h2oveg
-        call endrun(msg=errMsg(sourcefile, __LINE__))
+        !call endrun(msg=errMsg(sourcefile, __LINE__))
      end if
 
      !-----------------------------------------------------------------------
@@ -5875,7 +5893,9 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
        cfl_max = max(cfl_max,abs(k_eff*(h_node(id_dn) -h_node(id_up)))*dtime/volx/denh2o)
     enddo
     !Top node
-    cfl_max = max(cfl_max, abs(qtop * dtime/v_node(1)/denh2o))
+    if(cohort%status_coh == leaves_on) then !marius
+      cfl_max = max(cfl_max, abs(qtop * dtime/v_node(1)/denh2o))
+    end if
     ! To avoid extreme large clf_max due to large qtop from small gw weight
     cfl_max = min(20._r8,cfl_max)
 
@@ -6153,6 +6173,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
     cohort_hydr%th_troot             = cohort_hydr%th_troot + dth_node(n_hypool_ag+1)
 
     ! Change in water per plant [kg/plant]
+    !write(fates_log(),*) 'L6142', 'dth_node',dth_node(1:n_hypool_ag+n_hypool_troot),'v_node',v_node(1:n_hypool_ag+n_hypool_troot),'pft',cohort%pft !marius
     dwat_plant = sum(dth_node(1:n_hypool_ag+n_hypool_troot)*v_node(1:n_hypool_ag+n_hypool_troot))*denh2o
 
     inode = n_hypool_ag+n_hypool_troot
@@ -6164,6 +6185,7 @@ subroutine PicardSolve2D(csite_hydr,cohort,cohort_hydr, &
              dwat_plant = dwat_plant + (dth_node(inode) * v_node(inode))*denh2o
           else
              ishell = k-1
+             !write(fates_log(),*) 'L6154','dth_layershel',dth_layershell_site(j,ishell),'dth_node',dth_node(inode),'l_aroot_layer(j)',csite_hydr%l_aroot_layer(j),'pft',cohort%pft !marius
              dth_layershell_site(j,ishell) = dth_layershell_site(j,ishell) + &
                   dth_node(inode) * cohort_hydr%l_aroot_layer(j) * &
                   cohort%n / csite_hydr%l_aroot_layer(j)
