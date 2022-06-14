@@ -5749,7 +5749,7 @@ end subroutine update_history_hifrq
          index = ih_agb_si_scpf)
 
     call this%set_history_var(vname='FATES_NPLANT_SZPF', units = 'm-2',        &
-          long='stem number density by pft/size', use_default='inactive',      &
+          long='stem number density by pft/size', use_default='active',      &
           avgflag='A', vtype=site_size_pft_r8, hlms='CLM:ALM',                 &
           upfreq=1, ivar=ivar, initialize=initialize_variables,                &
           index = ih_nplant_si_scpf)
