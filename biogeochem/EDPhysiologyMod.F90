@@ -1111,8 +1111,8 @@ contains
           
           if (prt_params%season_decid(ipft) == itrue)then
              if ( currentSite%cstatus == phen_cstat_notcold  )then                ! we have just moved to leaves being on .
-              max_h=min(max(EDPftvarcon_inst%freezetol(currentCohort%pft),max(currentSite%hardtemp,-60._r8)-10._r8),-2._r8)
-              if ( currentSite%hard_level2(ipft) > max_h/2._r8)then ! we have just moved to leaves being on . marius
+              !max_h=min(max(EDPftvarcon_inst%freezetol(currentCohort%pft),max(currentSite%hardtemp,-60._r8)-10._r8),-2._r8)
+              !if ( currentSite%hard_level2(ipft) > max_h/2._r8)then ! we have just moved to leaves being on . marius
                 if (currentCohort%status_coh == leaves_off)then ! Are the leaves currently off?        
                    currentCohort%status_coh = leaves_on         ! Leaves are on, so change status to 
                                                                 ! stop flow of carbon out of bstore. 
@@ -1168,7 +1168,7 @@ contains
                   
                   endif		   
                 endif !pft phenology
-              endif !marius
+              !endif !marius
              endif ! growing season 
 
              !COLD LEAF OFF

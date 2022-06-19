@@ -126,6 +126,7 @@ module FatesHydraulicsMemMod
 
      real(r8),allocatable ::  sapflow_scpf(:,:)   ! flow at base of tree (+ upward)      [kg/ha/s]
                                                   ! discretized by size x pft
+     real(r8),allocatable ::  rootuptake_scpf(:,:) !marius
 
      
      ! Root uptake per SOIL layer [kg/m2/s]
@@ -396,6 +397,7 @@ module FatesHydraulicsMemMod
          allocate(this%rootl_sl(1:nlevsoil))                        ; this%rootl_sl = 0._r8
          
          allocate(this%sapflow_scpf(1:numlevsclass,1:numpft))       ; this%sapflow_scpf = nan
+         allocate(this%rootuptake_scpf(1:numlevsclass,1:numpft))    ; this%rootuptake_scpf = nan !marius
          allocate(this%rootuptake0_scpf(1:numlevsclass,1:numpft))   ; this%rootuptake0_scpf = nan
          allocate(this%rootuptake10_scpf(1:numlevsclass,1:numpft))  ; this%rootuptake10_scpf = nan
          allocate(this%rootuptake50_scpf(1:numlevsclass,1:numpft))  ; this%rootuptake50_scpf = nan

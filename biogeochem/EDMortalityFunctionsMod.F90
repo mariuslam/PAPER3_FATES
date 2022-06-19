@@ -431,10 +431,10 @@ if (hlm_use_ed_prescribed_phys .eq. ifalse) then
           cohort_in%hard_level = min_h
     end if  
     ipft = cohort_in%pft
-    if (prt_params%season_decid(ipft) == itrue .and. cohort_in%status_coh == leaves_on .and. bc_in%dayl_si > bc_in%prev_dayl_si .and. &
-        (nint(hlm_model_day) >= currentSite%cleafondate .or. nint(hlm_model_day) >= currentSite%dleafondate)) then         
-       cohort_in%hard_level = min_h
-    end if
+    !if (prt_params%season_decid(ipft) == itrue .and. cohort_in%status_coh == leaves_on .and. bc_in%dayl_si > bc_in%prev_dayl_si .and. &
+    !    (nint(hlm_model_day) >= currentSite%cleafondate .or. nint(hlm_model_day) >= currentSite%dleafondate)) then         
+    !   cohort_in%hard_level = min_h
+    !end if
     if (cohort_in%hard_level > min_h) then
        cohort_in%hard_level = min_h
     end if

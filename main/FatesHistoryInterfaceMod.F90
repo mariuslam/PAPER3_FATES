@@ -550,6 +550,7 @@ module FatesHistoryInterfaceMod
 
 !  integer :: ih_h2osoi_si_scagpft  ! hijacking the scagpft dimension instead of creating a new shsl dimension
   integer :: ih_sapflow_scpf
+  integer :: ih_rootuptake_scpf
   integer :: ih_sapflow_si
   integer :: ih_iterh1_scpf          
   integer :: ih_iterh2_scpf           
@@ -4028,6 +4029,7 @@ end subroutine update_history_hifrq
     associate( hio_errh2o_scpf  => this%hvars(ih_errh2o_scpf)%r82d, &
           hio_tran_scpf         => this%hvars(ih_tran_scpf)%r82d, &
           hio_sapflow_scpf      => this%hvars(ih_sapflow_scpf)%r82d, &
+          hio_rootuptake_scpf      => this%hvars(ih_rootuptake_scpf)%r82d, &
           hio_sapflow_si        => this%hvars(ih_sapflow_si)%r81d, & 
           hio_iterh1_scpf       => this%hvars(ih_iterh1_scpf)%r82d, &          
           hio_iterh2_scpf       => this%hvars(ih_iterh2_scpf)%r82d, &           
@@ -4178,6 +4180,7 @@ end subroutine update_history_hifrq
             do iscls = 1,nlevsclass
                iscpf = (ipft-1)*nlevsclass + iscls
                hio_sapflow_scpf(io_si,iscpf)       = site_hydr%sapflow_scpf(iscls, ipft) / m2_per_ha
+               hio_rootuptake_scpf(io_si,iscpf)       = site_hydr%rootuptake_scpf(iscls, ipft) / m2_per_ha
                hio_rootuptake0_scpf(io_si,iscpf)   = site_hydr%rootuptake0_scpf(iscls,ipft) / m2_per_ha
                hio_rootuptake10_scpf(io_si,iscpf)  = site_hydr%rootuptake10_scpf(iscls,ipft) / m2_per_ha
                hio_rootuptake50_scpf(io_si,iscpf)  = site_hydr%rootuptake50_scpf(iscls,ipft) / m2_per_ha
@@ -6874,6 +6877,12 @@ end subroutine update_history_hifrq
              use_default='active', avgflag='A', vtype=site_size_pft_r8,      &
              hlms='CLM:ALM', upfreq=4, ivar=ivar,                              &
              initialize=initialize_variables, index = ih_sapflow_scpf)
+
+       call this%set_history_var(vname='FATES_ROOTUPTAKE_SZPF', units='kg m-2 s-1', &
+             long='areal sap flow rate dimensioned by size x pft in kg per m2 per second', &
+             use_default='active', avgflag='A', vtype=site_size_pft_r8,      &
+             hlms='CLM:ALM', upfreq=4, ivar=ivar,                              &
+             initialize=initialize_variables, index = ih_rootuptake_scpf)
 
        call this%set_history_var(vname='FATES_SAPFLOW', units='kg m-2 s-1',    &
              long='areal sap flow rate in kg per m2 per second',               &
