@@ -574,7 +574,8 @@ module FatesHistoryInterfaceMod
   integer :: ih_hard_level2_si_pft
   integer :: ih_hardlevel_si_pft !marius
   integer :: ih_Tmin_24_fates_si !marius
-  
+  integer :: ih_lai_canopy_si_scpf
+
   ! Hydro: Soil water states
   integer :: ih_rootwgt_soilvwc_si
   integer :: ih_rootwgt_soilvwcsat_si
@@ -2028,6 +2029,7 @@ end subroutine flush_hvars
                hio_hardtemp_si                      => this%hvars(ih_hardtemp_si)%r81d, &   !marius  
                hio_hard_level2_si_pft               => this%hvars(ih_hard_level2_si_pft)%r82d, &
                hio_Tmin_24_fates_si                 => this%hvars(ih_Tmin_24_fates_si)%r81d, &   !marius
+               hio_lai_canopy_si_scpf               => this%hvars(ih_lai_canopy_si_scpf)%r82d, &
                hio_site_ncolddays_si                => this%hvars(ih_site_ncolddays_si)%r81d, &
                hio_site_nchilldays_si               => this%hvars(ih_site_nchilldays_si)%r81d, &
                hio_cleafoff_si                      => this%hvars(ih_cleafoff_si)%r81d, &
@@ -2688,6 +2690,8 @@ end subroutine flush_hvars
                      store_m * ccohort%n / m2_per_ha
                   hio_bleaf_canopy_si_scpf(io_si,scpf) = hio_bleaf_canopy_si_scpf(io_si,scpf) + &
                      leaf_m * ccohort%n / m2_per_ha
+                  hio_lai_canopy_si_scpf(io_si,scpf) = hio_lai_canopy_si_scpf(io_si,scpf) + &
+                      ccohort%treelai*ccohort%c_area * AREA_INV
 
                   hio_canopy_biomass_si(io_si) = hio_canopy_biomass_si(io_si) + n_perm2 * total_m
 
@@ -5880,6 +5884,14 @@ end subroutine update_history_hifrq
           avgflag='A', vtype=site_size_pft_r8, hlms='CLM:ALM', upfreq=1,       &
           ivar=ivar, initialize=initialize_variables,                          &
           index = ih_bleaf_canopy_si_scpf)
+
+    call this%set_history_var(vname='FATES_LAI_CANOPY_SZPF',                   &
+          units = 'm2 m-2',                                                    &
+          long='Leaf area index (LAI) of canopy plants by pft/size',           &
+          use_default='active', &
+          avgflag='A', vtype=site_size_pft_r8, hlms='CLM:ALM', upfreq=1,       &
+          ivar=ivar, initialize=initialize_variables,                          &
+          index = ih_lai_canopy_si_scpf )       
 
     call this%set_history_var(vname='FATES_NPLANT_CANOPY_SZPF', units = 'm-2', &
           long='number of canopy plants by size/pft per m2',                   &

@@ -13,7 +13,7 @@ module EDPhysiologyMod
   use FatesInterfaceTypesMod, only    : hlm_day_of_year
   use FatesInterfaceTypesMod, only    : numpft
   use FatesInterfaceTypesMod, only    : nleafage
-  use FatesInterfaceTypesMod, only    : hlm_use_planthydro
+  use FatesInterfaceTypesMod, only    : hlm_use_planthydro,hlm_use_hydrohard
   use FatesInterfaceTypesMod, only    : hlm_parteh_mode
   use FatesInterfaceTypesMod, only    : hlm_use_fixed_biogeog
   use FatesInterfaceTypesMod, only    : hlm_use_nocomp
@@ -1108,11 +1108,11 @@ contains
           ! COLD LEAF ON
           ! The site level flags signify that it is no-longer too cold
           ! for leaves. Time to signal flushing
-          
           if (prt_params%season_decid(ipft) == itrue)then
+           if (hlm_use_hydrohard .eq. itrue) then
              if ( currentSite%cstatus == phen_cstat_notcold  )then                ! we have just moved to leaves being on .
-              !max_h=min(max(EDPftvarcon_inst%freezetol(currentCohort%pft),max(currentSite%hardtemp,-60._r8)-10._r8),-2._r8)
-              !if ( currentSite%hard_level2(ipft) > max_h/2._r8)then ! we have just moved to leaves being on . marius
+              max_h=min(max(EDPftvarcon_inst%freezetol(currentCohort%pft),max(currentSite%hardtemp,-60._r8)-10._r8),-2._r8)
+              if ( currentSite%hard_level2(ipft) > max_h/2._r8)then ! we have just moved to leaves being on . marius
                 if (currentCohort%status_coh == leaves_off)then ! Are the leaves currently off?        
                    currentCohort%status_coh = leaves_on         ! Leaves are on, so change status to 
                                                                 ! stop flow of carbon out of bstore. 
@@ -1168,8 +1168,70 @@ contains
                   
                   endif		   
                 endif !pft phenology
-              !endif !marius
+              endif !marius
              endif ! growing season 
+           else !marius
+             if ( currentSite%cstatus == phen_cstat_notcold  )then                ! we have just moved to leaves being on .
+                if (currentCohort%status_coh == leaves_off)then ! Are the leaves currently off?        
+                   currentCohort%status_coh = leaves_on         ! Leaves are on, so change status to 
+                                                                ! stop flow of carbon out of bstore. 
+                   
+                   if(store_c>nearzero) then
+                   ! flush either the amount required from the laimemory, or -most- of the storage pool
+                   ! RF: added a criterion to stop the entire store pool emptying and triggering termination mortality
+                   ! n.b. this might not be necessary if we adopted a more gradual approach to leaf flushing... 
+                     store_c_transfer_frac =  min((EDPftvarcon_inst%phenflush_fraction(ipft)* &
+                     currentCohort%laimemory)/store_c,(1.0_r8-carbon_store_buffer))
+
+                     if(prt_params%woody(ipft).ne.itrue)then
+                        totalmemory=currentCohort%laimemory+currentCohort%sapwmemory+currentCohort%structmemory
+                        store_c_transfer_frac = min((EDPftvarcon_inst%phenflush_fraction(ipft)* &
+                                                totalmemory)/store_c, (1.0_r8-carbon_store_buffer))
+                     endif
+		     
+                   else
+                      store_c_transfer_frac = 0.0_r8
+                   end if
+
+                   ! This call will request that storage carbon will be transferred to 
+                   ! leaf tissues. It is specified as a fraction of the available storage
+                  if(prt_params%woody(ipft) == itrue) then
+
+                     call PRTPhenologyFlush(currentCohort%prt, ipft, leaf_organ, store_c_transfer_frac)
+                     currentCohort%laimemory = 0.0_r8		   
+
+                  else
+                  
+                     ! Check that the stem drop fraction is set to non-zero amount otherwise flush all carbon store to leaves
+                     if (stem_drop_fraction .gt. 0.0_r8) then
+
+                        call PRTPhenologyFlush(currentCohort%prt, ipft, leaf_organ, &
+                        store_c_transfer_frac*currentCohort%laimemory/totalmemory)		   
+
+                        call PRTPhenologyFlush(currentCohort%prt, ipft, sapw_organ, &
+                        store_c_transfer_frac*currentCohort%sapwmemory/totalmemory)
+
+                        call PRTPhenologyFlush(currentCohort%prt, ipft, struct_organ, & 
+                        store_c_transfer_frac*currentCohort%structmemory/totalmemory)
+
+                     else 
+
+                        call PRTPhenologyFlush(currentCohort%prt, ipft, leaf_organ, &
+                        store_c_transfer_frac)                        
+
+                     end if
+               
+                     currentCohort%laimemory = 0.0_r8
+                     currentCohort%structmemory = 0.0_r8
+                     currentCohort%sapwmemory = 0.0_r8
+                  
+                  endif		   
+                endif !pft phenology
+             endif ! growing season 
+           endif !marius
+
+
+
 
              !COLD LEAF OFF
              if (currentSite%cstatus == phen_cstat_nevercold .or. &

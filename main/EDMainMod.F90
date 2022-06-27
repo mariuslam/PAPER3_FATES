@@ -345,10 +345,10 @@ contains
     if (hlm_use_hydrohard.eq.itrue .or. hlm_use_frosthard.eq.itrue) then
        currentSite%Tmin_24_fates=bc_in%tmin24_si-273.15_r8
        if (nint(hlm_model_day)>=366) then
-         write(fates_log(),*) '5yrmean was taken'
+         write(fates_log(),*) '5yrmean was taken',bc_in%t_mean_5yr_si,bc_in%t_min_yr_inst_si
          currentSite%hardtemp=bc_in%t_mean_5yr_si-273.15_r8
        else if (nint(hlm_model_day)<366) then
-         write(fates_log(),*) 'minyrinst was taken'
+         !write(fates_log(),*) 'minyrinst was taken'
          currentSite%hardtemp=bc_in%t_min_yr_inst_si-273.15_r8
        end if   
        currentPatch => currentSite%youngest_patch

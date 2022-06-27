@@ -407,8 +407,9 @@ if (hlm_use_ed_prescribed_phys .eq. ifalse) then
        rate_dh=(Tmean-2.5_r8)*((max_h_dehard-min_h)/-62.22_r8)
      end if   
     end if
-
+    
     dayl_thresh= 42000.0_r8 + ( (-30.0_r8 - max(-60.0_r8,min(0.0_r8,currentSite%hardtemp)) )/15.0_r8) * 4500.0_r8
+    !write(fates_log(),*) hlm_current_year,hlm_current_month,hlm_current_day,'hardtemp',currentSite%hardtemp
     !================================================    
     !Hardening calculation
     cohort_in%hard_level_prev = cohort_in%hard_level
@@ -420,21 +421,23 @@ if (hlm_use_ed_prescribed_phys .eq. ifalse) then
     else if (cohort_in%hard_level_prev < target_h) then
        cohort_in%hard_level = cohort_in%hard_level_prev + rate_dh
     end if
-
+    !write(fates_log(),*) hlm_current_year,hlm_current_month,hlm_current_day,'thresh',dayl_thresh,'dayl',bc_in%dayl_si,'prev dayl',bc_in%prev_dayl_si
     if (bc_in%dayl_si <= dayl_thresh .and. bc_in%dayl_si < bc_in%prev_dayl_si) then ! prev: 46260._r8
        if (cohort_in%hard_level_prev >= target_h) then
        cohort_in%hard_level = cohort_in%hard_level_prev - rate_h
        else 
           cohort_in%hard_level = cohort_in%hard_level_prev ! now dehardening is not possible in autumn but the hardiness level is also allowed to remain steady
        end if
+       !write(fates_log(),*) hlm_current_year,hlm_current_month,hlm_current_day,'hard_prev',cohort_in%hard_level_prev,'target',target_h,'rate',rate_h
     else if (bc_in%dayl_si > dayl_thresh .and. bc_in%dayl_si < bc_in%prev_dayl_si) then
           cohort_in%hard_level = min_h
     end if  
     ipft = cohort_in%pft
-    !if (prt_params%season_decid(ipft) == itrue .and. cohort_in%status_coh == leaves_on .and. bc_in%dayl_si > bc_in%prev_dayl_si .and. &
-    !    (nint(hlm_model_day) >= currentSite%cleafondate .or. nint(hlm_model_day) >= currentSite%dleafondate)) then         
-    !   cohort_in%hard_level = min_h
-    !end if
+    if (prt_params%season_decid(ipft) == itrue .and. cohort_in%status_coh == leaves_on .and. bc_in%dayl_si > bc_in%prev_dayl_si .and. &
+        (nint(hlm_model_day) >= currentSite%cleafondate .or. nint(hlm_model_day) >= currentSite%dleafondate)) then         
+       cohort_in%hard_level = min_h
+       !write(fates_log(),*) hlm_current_year,hlm_current_month,hlm_current_day,'leaves_on'
+    end if
     if (cohort_in%hard_level > min_h) then
        cohort_in%hard_level = min_h
     end if

@@ -2549,6 +2549,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
 
      ! Zero out diagnotsics that rely on accumulation
      csite_hydr%sapflow_scpf(:,:)       = 0._r8
+     csite_hydr%rootuptake_scpf(:,:)      = 0._r8
      csite_hydr%rootuptake_sl(:)        = 0._r8
      csite_hydr%rootuptake0_scpf(:,:)   = 0._r8
      csite_hydr%rootuptake10_scpf(:,:)  = 0._r8
@@ -2729,6 +2730,9 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
               ! Root uptake per pft x size class, over set layer depths [kg/ha/m/s]
               ! These are normalized by depth (in case the desired horizon extends
               ! beyond the actual rhizosphere)
+
+              csite_hydr%rootuptake_scpf(sc,ft) = csite_hydr%rootuptake_scpf(sc,ft) + & !marius
+                   SumBetweenDepths(csite_hydr,0._r8,1.e10_r8,rootuptake(1:nlevrhiz))*ccohort%n/dtime
 
               csite_hydr%rootuptake0_scpf(sc,ft) = csite_hydr%rootuptake0_scpf(sc,ft) + &
                    SumBetweenDepths(csite_hydr,0._r8,0.1_r8,rootuptake(1:nlevrhiz))*ccohort%n/dtime
